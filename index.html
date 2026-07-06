@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Hwei Combo Trainer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -36,15 +36,25 @@
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
+    html {
+      width: 100%;
+      max-width: 100%;
+      overflow-x: hidden;
+      -webkit-text-size-adjust: 100%;
+    }
+
     body {
       background: var(--bg);
       color: var(--text);
       font-family: 'Inter', sans-serif;
+      width: 100%;
+      max-width: 100%;
       min-height: 100vh;
+      min-height: 100dvh;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      justify-content: center;
+      align-items: stretch;
+      justify-content: flex-start;
       overflow-x: hidden;
       overflow-y: auto;
       position: relative;
@@ -91,11 +101,14 @@
       z-index: 1;
       width: 100%;
       max-width: 720px;
+      margin: 0 auto;
       padding: 24px 20px;
+      padding-bottom: max(24px, env(safe-area-inset-bottom));
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 28px;
+      flex: 1;
     }
 
     /* ---- Header ---- */
@@ -609,52 +622,67 @@
     /* ---- Result overlay ---- */
     body.overlay-open {
       overflow: hidden;
+      touch-action: none;
     }
 
     .result-overlay {
       position: fixed;
-      inset: 0;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
       width: 100%;
       height: 100%;
-      min-height: 100dvh;
-      background: rgba(6, 9, 16, 0.95);
+      height: 100dvh;
+      background: rgba(6, 9, 16, 0.97);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
       display: none;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
+      place-items: center;
+      padding:
+        max(16px, env(safe-area-inset-top))
+        max(16px, env(safe-area-inset-right))
+        max(16px, env(safe-area-inset-bottom))
+        max(16px, env(safe-area-inset-left));
       box-sizing: border-box;
       z-index: 1000;
+      overflow: hidden;
     }
-    .result-overlay.visible { display: flex; }
+    .result-overlay.visible {
+      display: grid;
+    }
 
     .result-card {
       width: 100%;
-      max-width: 380px;
+      max-width: 340px;
+      margin: 0 auto;
       background: var(--bg-card);
       border: 1px solid var(--gold-dark);
       border-radius: 24px;
-      padding: 40px 32px;
+      padding: 32px 24px;
       display: flex;
       flex-direction: column;
       align-items: center;
       text-align: center;
-      gap: 16px;
+      gap: 14px;
       box-shadow: 0 0 60px rgba(200,155,60,0.15);
-      animation: cardIn 0.4s cubic-bezier(0.34, 1.4, 0.64, 1) forwards;
+      animation: resultIn 0.35s cubic-bezier(0.34, 1.4, 0.64, 1) forwards;
+    }
+
+    @keyframes resultIn {
+      0% { opacity: 0; transform: scale(0.95); }
+      100% { opacity: 1; transform: scale(1); }
     }
     .result-title {
       font-family: 'Cinzel', serif;
-      font-size: 13px;
-      letter-spacing: 4px;
+      font-size: 12px;
+      letter-spacing: 3px;
       text-transform: uppercase;
       color: var(--text-muted);
     }
     .result-score {
       font-family: 'Cinzel', serif;
-      font-size: 80px;
+      font-size: 72px;
       font-weight: 900;
       line-height: 1;
       background: linear-gradient(180deg, #fff 0%, var(--gold) 100%);
@@ -663,10 +691,12 @@
       background-clip: text;
     }
     .result-label {
-      font-size: 13px;
-      letter-spacing: 2px;
+      font-size: 11px;
+      letter-spacing: 1.5px;
       text-transform: uppercase;
       color: var(--text-muted);
+      line-height: 1.4;
+      max-width: 100%;
     }
     .result-best {
       font-family: 'Cinzel', serif;
@@ -698,6 +728,9 @@
       color: var(--gold-light);
       cursor: pointer;
       transition: background 0.2s, box-shadow 0.2s;
+      width: 100%;
+      max-width: 220px;
+      touch-action: manipulation;
     }
     .btn-restart:hover {
       background: #5c4210;
@@ -792,17 +825,56 @@
       box-shadow: 0 0 20px rgba(255, 70, 85, 0.15);
     }
 
+    /* ---- Memo collapsible on mobile ---- */
+    .memo-toggle {
+      display: none;
+      width: 100%;
+      font-family: 'Cinzel', serif;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 12px 16px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      color: var(--text-muted);
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+
     /* ---- Responsive ---- */
     @media (max-width: 480px) {
-      .spell-name { font-size: 28px; }
-      .spell-icon { width: 100px; height: 100px; }
-      .stats-bar { padding: 12px 16px; gap: 16px; }
+      .wrapper {
+        padding: 16px 14px;
+        gap: 20px;
+      }
+      header { width: 100%; }
+      .mode-selector, .input-selector, .layout-toggle {
+        width: 100%;
+        justify-content: center;
+      }
+      .mode-btn, .input-btn { flex: 1; text-align: center; }
+      .spell-name { font-size: 26px; letter-spacing: 2px; }
+      .spell-icon { width: 96px; height: 96px; }
+      .spell-card { padding: 28px 16px; }
+      .stats-bar { padding: 12px 14px; gap: 12px; width: 100%; }
       .stat-value { font-size: 22px; }
-      .key-legend { grid-template-columns: repeat(2, 1fr); }
-      .result-score { font-size: 60px; }
-      .result-card { padding: 36px 32px; }
-      .qcm-btn { font-size: 20px; padding: 22px 12px; }
-      .mode-selector, .input-selector { flex-wrap: wrap; justify-content: center; }
+      .key-legend { grid-template-columns: 1fr; gap: 8px; }
+      .legend-item { padding: 8px 10px; }
+      .legend-key { font-size: 11px; padding: 3px 6px; }
+      .result-score { font-size: 56px; }
+      .result-card { padding: 28px 20px; max-width: 100%; }
+      .qcm-btn { font-size: 17px; padding: 18px 10px; letter-spacing: 1px; }
+      .qcm-grid { gap: 8px; }
+      .memo-header .memo-hint { display: none; }
+      .memo-toggle { display: block; }
+      .memo-section .key-legend { display: none; }
+      .memo-section.open .key-legend { display: grid; }
+      .memo-section.open .memo-toggle::after { content: ' ▲'; }
+      .memo-section:not(.open) .memo-toggle::after { content: ' ▼'; }
+      h1 { font-size: 18px; letter-spacing: 2px; }
+      .timer-digits { font-size: 36px; }
     }
   </style>
 </head>
@@ -893,7 +965,7 @@
   </div>
 
   <!-- Memo -->
-  <div class="memo-section">
+  <div class="memo-section" id="memoSection">
     <div class="memo-header">
       <div>
         <div class="memo-title">Mémo des sorts</div>
@@ -901,6 +973,7 @@
       </div>
       <button class="btn-memo-reset" id="btnResetNames" type="button">Réinitialiser</button>
     </div>
+    <button class="memo-toggle" id="memoToggle" type="button">Voir le mémo des sorts</button>
     <div class="key-legend" id="keyLegend"></div>
   </div>
 
@@ -1022,6 +1095,8 @@ const $statBestWrap   = document.getElementById('statBestWrap');
 const $divider1       = document.getElementById('divider1');
 const $divider2       = document.getElementById('divider2');
 const $btnResetNames  = document.getElementById('btnResetNames');
+const $memoSection    = document.getElementById('memoSection');
+const $memoToggle     = document.getElementById('memoToggle');
 const $btnKeyboard    = document.getElementById('btnKeyboard');
 const $btnQcm         = document.getElementById('btnQcm');
 const $keyboardArea   = document.getElementById('keyboardArea');
@@ -1118,6 +1193,10 @@ function buildLegend() {
 }
 
 $btnResetNames.addEventListener('click', resetCustomNames);
+
+$memoToggle.addEventListener('click', () => {
+  $memoSection.classList.toggle('open');
+});
 
 // ==========================================
 //  LAYOUT SWITCH
@@ -1270,15 +1349,28 @@ function updateStatsFree() {
 //  TIMER MODE HELPERS
 // ==========================================
 function showResultOverlay() {
-  window.scrollTo(0, 0);
-  $resultOverlay.classList.add('visible');
+  savedScrollY = window.scrollY;
+  document.body.style.position = 'fixed';
+  document.body.style.top = `-${savedScrollY}px`;
+  document.body.style.left = '0';
+  document.body.style.right = '0';
+  document.body.style.width = '100%';
   document.body.classList.add('overlay-open');
+  $resultOverlay.classList.add('visible');
 }
 
 function hideResultOverlay() {
   $resultOverlay.classList.remove('visible');
   document.body.classList.remove('overlay-open');
+  document.body.style.position = '';
+  document.body.style.top = '';
+  document.body.style.left = '';
+  document.body.style.right = '';
+  document.body.style.width = '';
+  window.scrollTo(0, savedScrollY);
 }
+
+let savedScrollY = 0;
 
 function resetTimer() {
   stopTimer();
