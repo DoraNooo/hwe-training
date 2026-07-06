@@ -340,6 +340,74 @@
       color: var(--text);
       font-weight: 500;
     }
+    .legend-name-input {
+      flex: 1;
+      min-width: 0;
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text);
+      background: var(--bg-panel);
+      border: 1px solid transparent;
+      border-radius: 6px;
+      padding: 5px 8px;
+      outline: none;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .legend-name-input:hover {
+      border-color: var(--border);
+    }
+    .legend-name-input:focus {
+      border-color: var(--gold-dark);
+      background: var(--bg-card);
+    }
+    .legend-name-input.custom {
+      color: var(--gold-light);
+    }
+
+    /* ---- Memo section ---- */
+    .memo-section {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .memo-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .memo-title {
+      font-family: 'Cinzel', serif;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    .memo-hint {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .btn-memo-reset {
+      font-family: 'Inter', sans-serif;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: color 0.2s, border-color 0.2s;
+      flex-shrink: 0;
+    }
+    .btn-memo-reset:hover {
+      color: var(--gold-light);
+      border-color: var(--gold-dark);
+    }
     .legend-icon {
       width: 28px;
       height: 28px;
@@ -710,8 +778,17 @@
     <div class="keys-hint" id="keysHint">Appuie sur les touches · A Z E R</div>
   </div>
 
-  <!-- Legend -->
-  <div class="key-legend" id="keyLegend"></div>
+  <!-- Memo -->
+  <div class="memo-section">
+    <div class="memo-header">
+      <div>
+        <div class="memo-title">Mémo des sorts</div>
+        <div class="memo-hint">Clique sur un mot-clé pour le personnaliser</div>
+      </div>
+      <button class="btn-memo-reset" id="btnResetNames" type="button">Réinitialiser</button>
+    </div>
+    <div class="key-legend" id="keyLegend"></div>
+  </div>
 
 <!-- Result overlay (chrono mode) -->
 <div class="result-overlay" id="resultOverlay">
@@ -751,6 +828,7 @@ const SPELLS = [
 ];
 
 const TIMER_DURATION = 30;
+const NAMES_STORAGE_KEY = 'hwei-custom-names';
 
 // ==========================================
 //  STATE
@@ -761,6 +839,7 @@ let currentSpell = null;
 let typedKeys   = [];
 let blocked     = false;
 let lastSpellId = null;
+let customNames = loadCustomNames();
 
 // Free mode
 let streak      = 0;
@@ -816,6 +895,49 @@ const $statStreakWrap = document.getElementById('statStreakWrap');
 const $statBestWrap   = document.getElementById('statBestWrap');
 const $divider1       = document.getElementById('divider1');
 const $divider2       = document.getElementById('divider2');
+const $btnResetNames  = document.getElementById('btnResetNames');
+
+function loadCustomNames() {
+  try {
+    const saved = localStorage.getItem(NAMES_STORAGE_KEY);
+    return saved ? JSON.parse(saved) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveCustomNames() {
+  localStorage.setItem(NAMES_STORAGE_KEY, JSON.stringify(customNames));
+}
+
+function getSpellName(spell) {
+  const custom = customNames[spell.id];
+  if (typeof custom === 'string' && custom.trim()) return custom.trim();
+  return spell.name;
+}
+
+function setCustomName(spellId, value) {
+  const trimmed = value.trim();
+  const spell = SPELLS.find(s => s.id === spellId);
+  if (!spell) return;
+
+  if (!trimmed || trimmed === spell.name) {
+    delete customNames[spellId];
+  } else {
+    customNames[spellId] = trimmed;
+  }
+
+  saveCustomNames();
+  if (currentSpell?.id === spellId) renderSpell();
+}
+
+function resetCustomNames() {
+  customNames = {};
+  localStorage.removeItem(NAMES_STORAGE_KEY);
+  buildLegend();
+  if (currentSpell) renderSpell();
+  showToast('Mots-clés réinitialisés');
+}
 
 // ==========================================
 //  LEGEND
@@ -824,16 +946,47 @@ function buildLegend() {
   $legend.innerHTML = '';
   SPELLS.forEach(spell => {
     const keys = getKeys(spell);
+    const displayName = getSpellName(spell);
+    const isCustom = displayName !== spell.name;
+
     const el = document.createElement('div');
     el.className = 'legend-item';
-    el.innerHTML = `
-      <img class="legend-icon" src="${spell.icon}" alt="${spell.name}" />
-      <span class="legend-key">${keys.join(' + ')}</span>
-      <span class="legend-name">${spell.name}</span>
-    `;
+
+    const icon = document.createElement('img');
+    icon.className = 'legend-icon';
+    icon.src = spell.icon;
+    icon.alt = displayName;
+
+    const keySpan = document.createElement('span');
+    keySpan.className = 'legend-key';
+    keySpan.textContent = keys.join(' + ');
+
+    const input = document.createElement('input');
+    input.className = 'legend-name-input' + (isCustom ? ' custom' : '');
+    input.type = 'text';
+    input.maxLength = 20;
+    input.value = displayName;
+    input.placeholder = spell.name;
+    input.dataset.spellId = spell.id;
+    input.title = `Défaut : ${spell.name}`;
+
+    input.addEventListener('keydown', (e) => {
+      e.stopPropagation();
+      if (e.key === 'Enter') input.blur();
+    });
+
+    input.addEventListener('blur', () => {
+      setCustomName(spell.id, input.value);
+      input.value = getSpellName(spell);
+      input.classList.toggle('custom', input.value !== spell.name);
+    });
+
+    el.append(icon, keySpan, input);
     $legend.appendChild(el);
   });
 }
+
+$btnResetNames.addEventListener('click', resetCustomNames);
 
 // ==========================================
 //  LAYOUT SWITCH
@@ -996,10 +1149,10 @@ function renderSpell() {
   $icon.classList.remove('entering');
   void $icon.offsetWidth;
   $icon.src = spell.icon;
-  $icon.alt = spell.name;
+  $icon.alt = getSpellName(spell);
   $icon.classList.add('entering');
 
-  $name.textContent = spell.name.toUpperCase();
+  $name.textContent = getSpellName(spell).toUpperCase();
   $name.style.background = `linear-gradient(180deg, #ffffff 0%, ${spell.color} 100%)`;
   $name.style.webkitBackgroundClip = 'text';
   $name.style.webkitTextFillColor  = 'transparent';
@@ -1047,6 +1200,7 @@ function checkMilestone(s) {
 // ==========================================
 document.addEventListener('keydown', (e) => {
   if (blocked) return;
+  if (e.target.matches('input, textarea')) return;
   const key = e.key.toUpperCase();
   if (!validKeys().has(key)) return;
   e.preventDefault();
