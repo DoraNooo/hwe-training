@@ -692,6 +692,94 @@
       box-shadow: 0 0 20px rgba(200,155,60,0.25);
     }
 
+    /* ---- Input mode selector ---- */
+    .input-selector {
+      display: flex;
+      gap: 8px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 5px;
+    }
+    .input-btn {
+      font-family: 'Inter', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+    }
+    .input-btn.active {
+      background: var(--bg-panel);
+      color: var(--gold-light);
+      border: 1px solid var(--gold-dark);
+    }
+
+    /* ---- QCM area ---- */
+    .qcm-area {
+      width: 100%;
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .qcm-area.visible { display: flex; }
+
+    .qcm-label {
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    .qcm-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      width: 100%;
+    }
+
+    .qcm-btn {
+      font-family: 'Cinzel', serif;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      padding: 20px 12px;
+      border-radius: 14px;
+      border: 2px solid var(--border);
+      background: var(--bg-card);
+      color: var(--text);
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s, transform 0.1s, box-shadow 0.15s;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    .qcm-btn:active:not(:disabled) {
+      transform: scale(0.97);
+    }
+    .qcm-btn:disabled {
+      cursor: default;
+      opacity: 0.85;
+    }
+    .qcm-btn.correct {
+      border-color: var(--green);
+      background: rgba(11, 196, 184, 0.12);
+      color: var(--green);
+      box-shadow: 0 0 20px rgba(11, 196, 184, 0.2);
+    }
+    .qcm-btn.wrong {
+      border-color: var(--red);
+      background: rgba(255, 70, 85, 0.1);
+      color: var(--red);
+      box-shadow: 0 0 20px rgba(255, 70, 85, 0.15);
+    }
+
     /* ---- Responsive ---- */
     @media (max-width: 480px) {
       .spell-name { font-size: 28px; }
@@ -701,6 +789,8 @@
       .key-legend { grid-template-columns: repeat(2, 1fr); }
       .result-score { font-size: 60px; }
       .result-card { padding: 36px 32px; }
+      .qcm-btn { font-size: 20px; padding: 22px 12px; }
+      .mode-selector, .input-selector { flex-wrap: wrap; justify-content: center; }
     }
   </style>
 </head>
@@ -735,6 +825,12 @@
         <span class="toggle-thumb"></span>
       </label>
       <span class="layout-label" id="labelQWER">QWER</span>
+    </div>
+
+    <!-- Input mode -->
+    <div class="input-selector" style="margin-top:10px;">
+      <button class="input-btn active" id="btnKeyboard" type="button">⌨️ Clavier</button>
+      <button class="input-btn" id="btnQcm" type="button">📱 QCM</button>
     </div>
   </header>
 
@@ -773,9 +869,15 @@
     <div class="spell-name" id="spellName">—</div>
   </div>
 
-  <!-- Input hint -->
-  <div class="input-area">
+  <!-- Input hint (keyboard) -->
+  <div class="input-area" id="keyboardArea">
     <div class="keys-hint" id="keysHint">Appuie sur les touches · A Z E R</div>
+  </div>
+
+  <!-- QCM (mobile / touch) -->
+  <div class="qcm-area" id="qcmArea">
+    <div class="qcm-label">Choisis la bonne combinaison</div>
+    <div class="qcm-grid" id="qcmGrid"></div>
   </div>
 
   <!-- Memo -->
@@ -829,12 +931,14 @@ const SPELLS = [
 
 const TIMER_DURATION = 30;
 const NAMES_STORAGE_KEY = 'hwei-custom-names';
+const INPUT_MODE_KEY = 'hwei-input-mode';
 
 // ==========================================
 //  STATE
 // ==========================================
 let layout      = 'azer';   // 'azer' | 'qwer'
 let gameMode    = 'free';   // 'free' | 'timer'
+let inputMode   = 'keyboard'; // 'keyboard' | 'qcm'
 let currentSpell = null;
 let typedKeys   = [];
 let blocked     = false;
@@ -861,6 +965,16 @@ function getKeys(spell) {
 }
 function validKeys() {
   return layout === 'qwer' ? new Set(['Q','W','E','R']) : new Set(['A','Z','E','R']);
+}
+function formatKeys(keys) {
+  return keys.join(' + ');
+}
+function keysMatch(a, b) {
+  return a.length === b.length && a.every((k, i) => k === b[i]);
+}
+function isMobileDevice() {
+  return /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+    || window.matchMedia('(max-width: 768px) and (pointer: coarse)').matches;
 }
 
 // ==========================================
@@ -896,6 +1010,11 @@ const $statBestWrap   = document.getElementById('statBestWrap');
 const $divider1       = document.getElementById('divider1');
 const $divider2       = document.getElementById('divider2');
 const $btnResetNames  = document.getElementById('btnResetNames');
+const $btnKeyboard    = document.getElementById('btnKeyboard');
+const $btnQcm         = document.getElementById('btnQcm');
+const $keyboardArea   = document.getElementById('keyboardArea');
+const $qcmArea        = document.getElementById('qcmArea');
+const $qcmGrid        = document.getElementById('qcmGrid');
 
 function loadCustomNames() {
   try {
@@ -995,12 +1114,99 @@ $layoutSwitch.addEventListener('change', () => {
   layout = $layoutSwitch.checked ? 'qwer' : 'azer';
   $labelAZER.classList.toggle('active', !$layoutSwitch.checked);
   $labelQWER.classList.toggle('active', $layoutSwitch.checked);
+  updateInputHint();
+  buildLegend();
+  typedKeys = [];
+  if (currentSpell) renderSpell();
+});
+
+// ==========================================
+//  INPUT MODE (keyboard / QCM)
+// ==========================================
+function updateInputHint() {
+  if (inputMode === 'qcm') return;
   $keysHint.textContent = layout === 'qwer'
     ? 'Appuie sur les touches · Q W E R'
     : 'Appuie sur les touches · A Z E R';
-  buildLegend();
-  typedKeys = [];
-});
+}
+
+function setInputMode(mode) {
+  inputMode = mode;
+  localStorage.setItem(INPUT_MODE_KEY, mode);
+  $btnKeyboard.classList.toggle('active', mode === 'keyboard');
+  $btnQcm.classList.toggle('active', mode === 'qcm');
+  $keyboardArea.style.display = mode === 'keyboard' ? '' : 'none';
+  $qcmArea.classList.toggle('visible', mode === 'qcm');
+  updateInputHint();
+  if (currentSpell) renderSpell();
+}
+
+$btnKeyboard.addEventListener('click', () => setInputMode('keyboard'));
+$btnQcm.addEventListener('click', () => setInputMode('qcm'));
+
+function generateQcmOptions(correctSpell) {
+  const correctKeys = getKeys(correctSpell);
+  const correctStr = formatKeys(correctKeys);
+
+  const pool = SPELLS
+    .filter(s => s.id !== correctSpell.id)
+    .map(s => getKeys(s))
+    .filter(keys => formatKeys(keys) !== correctStr);
+
+  const unique = [];
+  const seen = new Set([correctStr]);
+  for (const keys of pool) {
+    const str = formatKeys(keys);
+    if (!seen.has(str)) {
+      seen.add(str);
+      unique.push(keys);
+    }
+  }
+
+  const shuffled = unique.sort(() => Math.random() - 0.5);
+  const distractors = shuffled.slice(0, 3);
+  while (distractors.length < 3) {
+    distractors.push(getKeys(SPELLS.find(s => s.id !== correctSpell.id)));
+  }
+
+  return [correctKeys, ...distractors].sort(() => Math.random() - 0.5);
+}
+
+function renderQcm() {
+  $qcmGrid.innerHTML = '';
+  if (!currentSpell || inputMode !== 'qcm') return;
+
+  generateQcmOptions(currentSpell).forEach(keys => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'qcm-btn';
+    btn.textContent = formatKeys(keys);
+    btn.dataset.keys = keys.join(',');
+    btn.addEventListener('click', () => handleQcmChoice(keys, btn));
+    $qcmGrid.appendChild(btn);
+  });
+}
+
+function handleQcmChoice(chosenKeys, btn) {
+  if (blocked || !currentSpell) return;
+
+  if (gameMode === 'timer' && !timerStarted) startTimer();
+
+  const correctKeys = getKeys(currentSpell);
+  const buttons = [...$qcmGrid.querySelectorAll('.qcm-btn')];
+  buttons.forEach(b => b.disabled = true);
+
+  if (keysMatch(chosenKeys, correctKeys)) {
+    btn.classList.add('correct');
+    onComboSuccess();
+  } else {
+    btn.classList.add('wrong');
+    buttons.forEach(b => {
+      if (b.dataset.keys === correctKeys.join(',')) b.classList.add('correct');
+    });
+    onComboWrong();
+  }
+}
 
 // ==========================================
 //  MODE SWITCH
@@ -1161,6 +1367,58 @@ function renderSpell() {
   $card.classList.remove('entering', 'correct', 'wrong');
   void $card.offsetWidth;
   $card.classList.add('entering');
+
+  renderQcm();
+}
+
+// ==========================================
+//  COMBO RESULT (shared keyboard + QCM)
+// ==========================================
+function onComboSuccess() {
+  if (gameMode === 'free') {
+    streak++;
+    totalCorrect++;
+    if (streak > bestStreak) bestStreak = streak;
+    updateStatsFree();
+    checkMilestone(streak);
+    bump($streak); bump($total);
+    if (streak > 1) bump($best);
+  } else {
+    timerScore++;
+    $total.textContent = timerScore;
+    bump($total);
+  }
+
+  $card.classList.add('correct');
+  blocked = true;
+  spawnParticles('correct');
+
+  setTimeout(() => {
+    $card.classList.remove('correct');
+    pickSpell();
+  }, inputMode === 'qcm' ? 350 : 200);
+}
+
+function onComboWrong() {
+  if (gameMode === 'free') {
+    streak = 0;
+    updateStatsFree();
+    bump($streak);
+    showToast('RATÉ — Recommence !', true);
+  } else {
+    timerErrors++;
+  }
+
+  $card.classList.add('wrong');
+  blocked = true;
+  spawnParticles('wrong');
+
+  setTimeout(() => {
+    $card.classList.remove('wrong');
+    typedKeys = [];
+    blocked   = false;
+    pickSpell();
+  }, inputMode === 'qcm' ? 600 : (gameMode === 'timer' ? 300 : 500));
 }
 
 // ==========================================
@@ -1199,13 +1457,12 @@ function checkMilestone(s) {
 //  KEY HANDLER
 // ==========================================
 document.addEventListener('keydown', (e) => {
-  if (blocked) return;
+  if (blocked || inputMode === 'qcm') return;
   if (e.target.matches('input, textarea')) return;
   const key = e.key.toUpperCase();
   if (!validKeys().has(key)) return;
   e.preventDefault();
 
-  // Timer mode: first key starts the clock
   if (gameMode === 'timer' && !timerStarted) startTimer();
 
   const spell = currentSpell;
@@ -1215,54 +1472,9 @@ document.addEventListener('keydown', (e) => {
 
   if (key === expectedKey) {
     typedKeys.push(key);
-
-    if (typedKeys.length === getKeys(spell).length) {
-      // ---- SUCCESS ----
-      if (gameMode === 'free') {
-        streak++;
-        totalCorrect++;
-        if (streak > bestStreak) bestStreak = streak;
-        updateStatsFree();
-        checkMilestone(streak);
-        bump($streak); bump($total);
-        if (streak > 1) bump($best);
-      } else {
-        timerScore++;
-        $total.textContent = timerScore;
-        bump($total);
-      }
-
-      $card.classList.add('correct');
-      blocked = true;
-      spawnParticles('correct');
-
-      setTimeout(() => {
-        $card.classList.remove('correct');
-        pickSpell();
-      }, 200);
-    }
-
+    if (typedKeys.length === getKeys(spell).length) onComboSuccess();
   } else {
-    // ---- WRONG ----
-    if (gameMode === 'free') {
-      streak = 0;
-      updateStatsFree();
-      bump($streak);
-      showToast('RATÉ — Recommence !', true);
-    } else {
-      timerErrors++;
-    }
-
-    $card.classList.add('wrong');
-    blocked = true;
-    spawnParticles('wrong');
-
-    setTimeout(() => {
-      $card.classList.remove('wrong');
-      typedKeys = [];
-      blocked   = false;
-      pickSpell();
-    }, gameMode === 'timer' ? 300 : 500);
+    onComboWrong();
   }
 });
 
@@ -1378,6 +1590,8 @@ function fullAnimate() {
 //  INIT
 // ==========================================
 buildLegend();
+const savedInputMode = localStorage.getItem(INPUT_MODE_KEY);
+setInputMode(savedInputMode || (isMobileDevice() ? 'qcm' : 'keyboard'));
 setMode('free');
 fullAnimate();
 </script>
