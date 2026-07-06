@@ -1,0 +1,1231 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hwei Combo Trainer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Beaufort+for+LOL:wght@400;700&family=Spiegel:wght@400;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --gold-light: #f0e6c0;
+      --gold: #C89B3C;
+      --gold-dark: #785a28;
+      --gold-deep: #463714;
+      --blue-light: #7EC8E3;
+      --red: #ff4655;
+      --green: #0bc4b8;
+      --bg: #060910;
+      --bg-card: #0d1117;
+      --bg-panel: #111820;
+      --border: #1e2a38;
+      --text-muted: #5e7080;
+      --text: #c8d6e0;
+
+      --q-color: #e85c2a;
+      --q-glow: rgba(232, 92, 42, 0.4);
+      --w-color: #3ab5ff;
+      --w-glow: rgba(58, 181, 255, 0.4);
+      --e-color: #9b59b6;
+      --e-glow: rgba(155, 89, 182, 0.4);
+      --r-color: #f1c40f;
+      --r-glow: rgba(241, 196, 15, 0.4);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow-x: hidden;
+      overflow-y: auto;
+      position: relative;
+    }
+
+    /* ---- Background ambiance ---- */
+    .bg-glow {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .bg-glow::before {
+      content: '';
+      position: absolute;
+      top: -20%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 800px;
+      height: 500px;
+      background: radial-gradient(ellipse, rgba(200, 155, 60, 0.06) 0%, transparent 70%);
+    }
+    .bg-glow::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--gold-dark), transparent);
+    }
+
+    /* ---- Canvas particles ---- */
+    #particles {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ---- Main layout ---- */
+    .wrapper {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 720px;
+      padding: 24px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 28px;
+    }
+
+    /* ---- Header ---- */
+    header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+    .logo-line {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .logo-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 2px solid var(--gold-dark);
+      object-fit: cover;
+    }
+    h1 {
+      font-family: 'Cinzel', serif;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      background: linear-gradient(180deg, #f0e6c0 0%, #C89B3C 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .subtitle {
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    /* ---- Stats bar ---- */
+    .stats-bar {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 32px;
+      width: 100%;
+    }
+    .stat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      flex: 1;
+    }
+    .stat-label {
+      font-size: 9px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    .stat-value {
+      font-family: 'Cinzel', serif;
+      font-size: 28px;
+      font-weight: 700;
+      line-height: 1;
+      color: var(--gold);
+      transition: transform 0.1s;
+    }
+    .stat-value.bump {
+      transform: scale(1.3);
+    }
+    .stat-divider {
+      width: 1px;
+      height: 40px;
+      background: var(--border);
+    }
+
+    /* ---- Spell card ---- */
+    .spell-card {
+      position: relative;
+      width: 100%;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 40px 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+      overflow: hidden;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    .spell-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, var(--stance-color, var(--gold)), transparent);
+      opacity: 0.8;
+      transition: --stance-color 0.3s;
+    }
+
+    .spell-card.correct {
+      border-color: var(--green) !important;
+      box-shadow: 0 0 40px rgba(11, 196, 184, 0.25) !important;
+    }
+    .spell-card.wrong {
+      border-color: var(--red) !important;
+      box-shadow: 0 0 40px rgba(255, 70, 85, 0.25) !important;
+    }
+
+    /* ---- Spell icon ---- */
+    .icon-wrapper {
+      position: relative;
+    }
+    .spell-icon {
+      width: 120px;
+      height: 120px;
+      border-radius: 16px;
+      object-fit: cover;
+      border: 3px solid var(--gold-dark);
+      box-shadow: 0 0 40px var(--icon-glow, var(--q-glow)), 0 8px 24px rgba(0,0,0,0.6);
+      transition: transform 0.2s, box-shadow 0.2s;
+      image-rendering: crisp-edges;
+    }
+    .icon-wrapper::after {
+      content: '';
+      position: absolute;
+      inset: -8px;
+      border-radius: 22px;
+      background: radial-gradient(ellipse at center, var(--icon-glow, var(--q-glow)) 0%, transparent 70%);
+      z-index: -1;
+      animation: pulseGlow 2s ease-in-out infinite;
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% { opacity: 0.5; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.05); }
+    }
+
+    /* ---- Spell name ---- */
+    .spell-name {
+      font-family: 'Cinzel', serif;
+      font-size: 38px;
+      font-weight: 900;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      background: linear-gradient(180deg, #ffffff 0%, var(--icon-color, var(--q-color)) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      transition: opacity 0.2s;
+    }
+
+    /* ---- Combo keys display ---- */
+    .combo-display {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .key-slot {
+      width: 52px;
+      height: 52px;
+      border-radius: 10px;
+      border: 2px solid var(--border);
+      background: var(--bg-panel);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Cinzel', serif;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text-muted);
+      position: relative;
+      transition: border-color 0.15s, background 0.15s, color 0.15s, box-shadow 0.15s;
+    }
+    .key-slot.active {
+      border-color: var(--gold);
+      background: var(--gold-deep);
+      color: var(--gold-light);
+      box-shadow: 0 0 16px var(--gold-glow, rgba(200,155,60,0.5));
+    }
+    .key-slot.typed {
+      border-color: var(--green);
+      background: rgba(11, 196, 184, 0.15);
+      color: var(--green);
+      box-shadow: 0 0 16px rgba(11, 196, 184, 0.3);
+    }
+
+    /* ---- Input area ---- */
+    .input-area {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+    }
+    .keys-hint {
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    /* ---- Key legend ---- */
+    .key-legend {
+      width: 100%;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    .legend-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .legend-key {
+      font-family: 'Cinzel', serif;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 6px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      letter-spacing: 1px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .legend-name {
+      font-size: 12px;
+      color: var(--text);
+      font-weight: 500;
+    }
+    .legend-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      object-fit: cover;
+      border: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    /* ---- Toast notification ---- */
+    .toast {
+      position: fixed;
+      top: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-80px);
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 24px;
+      font-family: 'Cinzel', serif;
+      font-size: 14px;
+      letter-spacing: 2px;
+      color: var(--gold);
+      z-index: 100;
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      pointer-events: none;
+    }
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+    }
+    .toast.wrong-toast {
+      border-color: var(--red);
+      color: var(--red);
+    }
+
+    /* ---- Card enter animation ---- */
+    @keyframes cardIn {
+      0% { opacity: 0; transform: translateY(12px) scale(0.97); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .spell-card.entering {
+      animation: cardIn 0.3s cubic-bezier(0.34, 1.4, 0.64, 1) forwards;
+    }
+
+    @keyframes iconSpin {
+      0% { transform: scale(0.8) rotate(-10deg); opacity: 0; }
+      100% { transform: scale(1) rotate(0deg); opacity: 1; }
+    }
+    .spell-icon.entering {
+      animation: iconSpin 0.35s cubic-bezier(0.34, 1.4, 0.64, 1) forwards;
+    }
+
+    /* ---- Streak milestones ---- */
+    @keyframes streakPop {
+      0% { transform: scale(1); }
+      40% { transform: scale(1.6); }
+      100% { transform: scale(1); }
+    }
+    .streak-fire {
+      display: inline-block;
+      margin-left: 4px;
+      animation: streakPop 0.4s ease;
+    }
+
+    /* ---- Layout toggle ---- */
+    .layout-toggle {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 6px 8px;
+    }
+    .layout-label {
+      font-family: 'Cinzel', serif;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      color: var(--text-muted);
+      transition: color 0.2s;
+      user-select: none;
+      cursor: pointer;
+    }
+    .layout-label.active {
+      color: var(--gold);
+    }
+    .toggle-track {
+      position: relative;
+      width: 40px;
+      height: 22px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 11px;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s;
+      flex-shrink: 0;
+    }
+    .toggle-track:has(input:checked) {
+      background: var(--gold-deep);
+      border-color: var(--gold-dark);
+    }
+    .toggle-track input {
+      position: absolute;
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .toggle-thumb {
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--text-muted);
+      transition: transform 0.2s cubic-bezier(0.34, 1.4, 0.64, 1), background 0.2s;
+      pointer-events: none;
+    }
+    .toggle-track:has(input:checked) .toggle-thumb {
+      transform: translateX(18px);
+      background: var(--gold);
+    }
+
+    /* ---- Mode selector ---- */
+    .mode-selector {
+      display: flex;
+      gap: 8px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 5px;
+    }
+    .mode-btn {
+      font-family: 'Cinzel', serif;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 8px 18px;
+      border-radius: 8px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+    }
+    .mode-btn.active {
+      background: var(--gold-deep);
+      color: var(--gold-light);
+      border: 1px solid var(--gold-dark);
+    }
+
+    /* ---- Timer bar ---- */
+    .timer-bar {
+      width: 100%;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+    .timer-bar.visible { display: flex; }
+
+    .timer-track {
+      width: 100%;
+      height: 6px;
+      background: var(--bg-panel);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .timer-fill {
+      height: 100%;
+      width: 100%;
+      background: linear-gradient(90deg, var(--gold-dark), var(--gold));
+      border-radius: 3px;
+      transform-origin: left;
+      transition: background 0.5s;
+    }
+    .timer-fill.danger {
+      background: linear-gradient(90deg, #8b0000, var(--red));
+      animation: timerPulse 0.5s ease-in-out infinite alternate;
+    }
+    @keyframes timerPulse {
+      from { opacity: 1; }
+      to   { opacity: 0.6; }
+    }
+
+    .timer-digits {
+      font-family: 'Cinzel', serif;
+      font-size: 42px;
+      font-weight: 900;
+      letter-spacing: 4px;
+      color: var(--gold);
+      line-height: 1;
+      transition: color 0.3s;
+    }
+    .timer-digits.danger { color: var(--red); }
+
+    /* ---- Result overlay ---- */
+    .result-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(6, 9, 16, 0.92);
+      backdrop-filter: blur(8px);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 28px;
+      z-index: 200;
+    }
+    .result-overlay.visible { display: flex; }
+
+    .result-card {
+      background: var(--bg-card);
+      border: 1px solid var(--gold-dark);
+      border-radius: 24px;
+      padding: 48px 56px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      box-shadow: 0 0 60px rgba(200,155,60,0.15);
+      animation: cardIn 0.4s cubic-bezier(0.34, 1.4, 0.64, 1) forwards;
+    }
+    .result-title {
+      font-family: 'Cinzel', serif;
+      font-size: 13px;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    .result-score {
+      font-family: 'Cinzel', serif;
+      font-size: 80px;
+      font-weight: 900;
+      line-height: 1;
+      background: linear-gradient(180deg, #fff 0%, var(--gold) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .result-label {
+      font-size: 13px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    .result-best {
+      font-family: 'Cinzel', serif;
+      font-size: 14px;
+      color: var(--gold);
+      letter-spacing: 1px;
+    }
+    .result-best span { color: var(--gold-light); }
+    .result-accuracy {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .result-accuracy span { color: var(--text); }
+    .result-divider {
+      width: 60px;
+      height: 1px;
+      background: var(--border);
+    }
+    .btn-restart {
+      font-family: 'Cinzel', serif;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 14px 36px;
+      border-radius: 10px;
+      border: 1px solid var(--gold-dark);
+      background: var(--gold-deep);
+      color: var(--gold-light);
+      cursor: pointer;
+      transition: background 0.2s, box-shadow 0.2s;
+    }
+    .btn-restart:hover {
+      background: #5c4210;
+      box-shadow: 0 0 20px rgba(200,155,60,0.25);
+    }
+
+    /* ---- Responsive ---- */
+    @media (max-width: 480px) {
+      .spell-name { font-size: 28px; }
+      .spell-icon { width: 100px; height: 100px; }
+      .stats-bar { padding: 12px 16px; gap: 16px; }
+      .stat-value { font-size: 22px; }
+      .key-legend { grid-template-columns: repeat(2, 1fr); }
+      .result-score { font-size: 60px; }
+      .result-card { padding: 36px 32px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="bg-glow"></div>
+<canvas id="particles"></canvas>
+
+<div class="wrapper">
+
+  <!-- Header -->
+  <header>
+    <div class="logo-line">
+      <img class="logo-icon"
+        src="https://raw.communitydragon.org/latest/game/assets/characters/hwei/hud/icons2d/hweipassive.png"
+        alt="Hwei" />
+      <h1>Hwei Trainer</h1>
+    </div>
+    <div class="subtitle">Maîtrise tes combos · Zéro erreur</div>
+
+    <!-- Mode selector -->
+    <div class="mode-selector" style="margin-top:14px;">
+      <button class="mode-btn active" id="btnFree">Entraînement</button>
+      <button class="mode-btn" id="btnTimer">⏱ Contre la montre</button>
+    </div>
+
+    <!-- Layout toggle -->
+    <div class="layout-toggle" style="margin-top:10px;">
+      <span class="layout-label active" id="labelAZER">AZER</span>
+      <label class="toggle-track">
+        <input type="checkbox" id="layoutSwitch" />
+        <span class="toggle-thumb"></span>
+      </label>
+      <span class="layout-label" id="labelQWER">QWER</span>
+    </div>
+  </header>
+
+  <!-- Stats bar — adapts per mode -->
+  <div class="stats-bar" id="statsBar">
+    <!-- Free mode -->
+    <div class="stat" id="statStreakWrap">
+      <span class="stat-label">Streak</span>
+      <span class="stat-value" id="streak">0</span>
+    </div>
+    <div class="stat-divider" id="divider1"></div>
+    <div class="stat" id="statBestWrap">
+      <span class="stat-label" id="bestLabel">Meilleur</span>
+      <span class="stat-value" id="best">0</span>
+    </div>
+    <div class="stat-divider" id="divider2"></div>
+    <div class="stat">
+      <span class="stat-label" id="totalLabel">Total</span>
+      <span class="stat-value" id="total">0</span>
+    </div>
+  </div>
+
+  <!-- Timer (chrono mode only) -->
+  <div class="timer-bar" id="timerBar">
+    <div class="timer-digits" id="timerDigits">30</div>
+    <div class="timer-track">
+      <div class="timer-fill" id="timerFill"></div>
+    </div>
+  </div>
+
+  <!-- Spell card -->
+  <div class="spell-card" id="spellCard">
+    <div class="icon-wrapper">
+      <img class="spell-icon" id="spellIcon" src="" alt="" />
+    </div>
+    <div class="spell-name" id="spellName">—</div>
+  </div>
+
+  <!-- Input hint -->
+  <div class="input-area">
+    <div class="keys-hint" id="keysHint">Appuie sur les touches · A Z E R</div>
+  </div>
+
+  <!-- Legend -->
+  <div class="key-legend" id="keyLegend"></div>
+
+<!-- Result overlay (chrono mode) -->
+<div class="result-overlay" id="resultOverlay">
+  <div class="result-card">
+    <div class="result-title">Temps écoulé !</div>
+    <div class="result-score" id="resultScore">0</div>
+    <div class="result-label">combos réussis en 30s</div>
+    <div class="result-divider"></div>
+    <div class="result-best" id="resultBest">Record : <span id="recordVal">0</span></div>
+    <div class="result-accuracy" id="resultAcc">Précision : <span id="accVal">—</span></div>
+    <button class="btn-restart" id="btnRestart">Rejouer</button>
+  </div>
+</div>
+
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ==========================================
+//  SPELL DATA
+// ==========================================
+const BASE = 'https://raw.communitydragon.org/latest/game/assets/characters/hwei/hud/icons2d/';
+
+const SPELLS = [
+  { id:'qq', name:'Q',     keysAZER:['A','A'], keysQWER:['Q','Q'], icon:BASE+'hweiqq.png', stance:'q', color:'var(--q-color)', glow:'var(--q-glow)' },
+  { id:'qw', name:'Snipe', keysAZER:['A','Z'], keysQWER:['Q','W'], icon:BASE+'hweiqw.png', stance:'q', color:'var(--q-color)', glow:'var(--q-glow)' },
+  { id:'qe', name:'Lave',  keysAZER:['A','E'], keysQWER:['Q','E'], icon:BASE+'hweiqe.png', stance:'q', color:'var(--q-color)', glow:'var(--q-glow)' },
+  { id:'wq', name:'Speed', keysAZER:['Z','A'], keysQWER:['W','Q'], icon:BASE+'hweiwq.png', stance:'w', color:'var(--w-color)', glow:'var(--w-glow)' },
+  { id:'ww', name:'Shield',keysAZER:['Z','Z'], keysQWER:['W','W'], icon:BASE+'hweiww.png', stance:'w', color:'var(--w-color)', glow:'var(--w-glow)' },
+  { id:'we', name:'Boost', keysAZER:['Z','E'], keysQWER:['W','E'], icon:BASE+'hweiwe.png', stance:'w', color:'var(--w-color)', glow:'var(--w-glow)' },
+  { id:'eq', name:'Fear',  keysAZER:['E','A'], keysQWER:['E','Q'], icon:BASE+'hweieq.png', stance:'e', color:'var(--e-color)', glow:'var(--e-glow)' },
+  { id:'ew', name:'Root',  keysAZER:['E','Z'], keysQWER:['E','W'], icon:BASE+'hweiew.png', stance:'e', color:'var(--e-color)', glow:'var(--e-glow)' },
+  { id:'ee', name:'Grab',  keysAZER:['E','E'], keysQWER:['E','E'], icon:BASE+'hweiee.png', stance:'e', color:'var(--e-color)', glow:'var(--e-glow)' },
+  { id:'r',  name:'R',     keysAZER:['R'],     keysQWER:['R'],     icon:BASE+'hweir.png',  stance:'r', color:'var(--r-color)', glow:'var(--r-glow)' },
+];
+
+const TIMER_DURATION = 30;
+
+// ==========================================
+//  STATE
+// ==========================================
+let layout      = 'azer';   // 'azer' | 'qwer'
+let gameMode    = 'free';   // 'free' | 'timer'
+let currentSpell = null;
+let typedKeys   = [];
+let blocked     = false;
+let lastSpellId = null;
+
+// Free mode
+let streak      = 0;
+let bestStreak  = 0;
+let totalCorrect = 0;
+
+// Timer mode
+let timerRunning  = false;
+let timerStart    = 0;
+let timerRemaining = TIMER_DURATION;
+let timerRAF      = null;
+let timerScore    = 0;    // combos this run
+let timerErrors   = 0;    // errors this run
+let timerRecord   = 0;    // best score ever
+let timerStarted  = false; // first keypress starts the clock
+
+function getKeys(spell) {
+  return layout === 'qwer' ? spell.keysQWER : spell.keysAZER;
+}
+function validKeys() {
+  return layout === 'qwer' ? new Set(['Q','W','E','R']) : new Set(['A','Z','E','R']);
+}
+
+// ==========================================
+//  DOM REFS
+// ==========================================
+const $streak       = document.getElementById('streak');
+const $best         = document.getElementById('best');
+const $bestLabel    = document.getElementById('bestLabel');
+const $total        = document.getElementById('total');
+const $totalLabel   = document.getElementById('totalLabel');
+const $card         = document.getElementById('spellCard');
+const $icon         = document.getElementById('spellIcon');
+const $name         = document.getElementById('spellName');
+const $toast        = document.getElementById('toast');
+const $legend       = document.getElementById('keyLegend');
+const $keysHint     = document.getElementById('keysHint');
+const $layoutSwitch = document.getElementById('layoutSwitch');
+const $labelAZER    = document.getElementById('labelAZER');
+const $labelQWER    = document.getElementById('labelQWER');
+const $btnFree      = document.getElementById('btnFree');
+const $btnTimer     = document.getElementById('btnTimer');
+const $timerBar     = document.getElementById('timerBar');
+const $timerDigits  = document.getElementById('timerDigits');
+const $timerFill    = document.getElementById('timerFill');
+const $resultOverlay= document.getElementById('resultOverlay');
+const $resultScore  = document.getElementById('resultScore');
+const $resultBest   = document.getElementById('resultBest');
+const $recordVal    = document.getElementById('recordVal');
+const $accVal       = document.getElementById('accVal');
+const $btnRestart   = document.getElementById('btnRestart');
+const $statStreakWrap = document.getElementById('statStreakWrap');
+const $statBestWrap   = document.getElementById('statBestWrap');
+const $divider1       = document.getElementById('divider1');
+const $divider2       = document.getElementById('divider2');
+
+// ==========================================
+//  LEGEND
+// ==========================================
+function buildLegend() {
+  $legend.innerHTML = '';
+  SPELLS.forEach(spell => {
+    const keys = getKeys(spell);
+    const el = document.createElement('div');
+    el.className = 'legend-item';
+    el.innerHTML = `
+      <img class="legend-icon" src="${spell.icon}" alt="${spell.name}" />
+      <span class="legend-key">${keys.join(' + ')}</span>
+      <span class="legend-name">${spell.name}</span>
+    `;
+    $legend.appendChild(el);
+  });
+}
+
+// ==========================================
+//  LAYOUT SWITCH
+// ==========================================
+$layoutSwitch.addEventListener('change', () => {
+  layout = $layoutSwitch.checked ? 'qwer' : 'azer';
+  $labelAZER.classList.toggle('active', !$layoutSwitch.checked);
+  $labelQWER.classList.toggle('active', $layoutSwitch.checked);
+  $keysHint.textContent = layout === 'qwer'
+    ? 'Appuie sur les touches · Q W E R'
+    : 'Appuie sur les touches · A Z E R';
+  buildLegend();
+  typedKeys = [];
+});
+
+// ==========================================
+//  MODE SWITCH
+// ==========================================
+function setMode(mode) {
+  gameMode = mode;
+  $btnFree.classList.toggle('active', mode === 'free');
+  $btnTimer.classList.toggle('active', mode === 'timer');
+
+  if (mode === 'free') {
+    $timerBar.classList.remove('visible');
+    $statStreakWrap.style.display = '';
+    $statBestWrap.style.display  = '';
+    $divider1.style.display      = '';
+    $divider2.style.display      = '';
+    $bestLabel.textContent  = 'Meilleur';
+    $totalLabel.textContent = 'Total';
+    resetFree();
+  } else {
+    $timerBar.classList.add('visible');
+    $statStreakWrap.style.display = 'none';
+    $statBestWrap.style.display  = 'none';
+    $divider1.style.display      = 'none';
+    $divider2.style.display      = 'none';
+    $totalLabel.textContent = 'Combos';
+    resetTimer();
+  }
+}
+
+$btnFree.addEventListener('click',  () => setMode('free'));
+$btnTimer.addEventListener('click', () => setMode('timer'));
+
+// ==========================================
+//  FREE MODE HELPERS
+// ==========================================
+function resetFree() {
+  streak = bestStreak = totalCorrect = 0;
+  updateStatsFree();
+  pickSpell();
+}
+
+function updateStatsFree() {
+  $streak.textContent = streak;
+  $best.textContent   = bestStreak;
+  $total.textContent  = totalCorrect;
+}
+
+// ==========================================
+//  TIMER MODE HELPERS
+// ==========================================
+function resetTimer() {
+  stopTimer();
+  timerScore    = 0;
+  timerErrors   = 0;
+  timerStarted  = false;
+  timerRemaining = TIMER_DURATION;
+  $timerDigits.textContent = TIMER_DURATION;
+  $timerDigits.classList.remove('danger');
+  $timerFill.style.transform = 'scaleX(1)';
+  $timerFill.classList.remove('danger');
+  $total.textContent = '0';
+  $resultOverlay.classList.remove('visible');
+  pickSpell();
+}
+
+function startTimer() {
+  timerStarted = true;
+  timerStart = performance.now();
+  tickTimer();
+}
+
+function tickTimer() {
+  const elapsed = (performance.now() - timerStart) / 1000;
+  timerRemaining = Math.max(0, TIMER_DURATION - elapsed);
+
+  const secs = Math.ceil(timerRemaining);
+  $timerDigits.textContent = secs;
+
+  const pct = timerRemaining / TIMER_DURATION;
+  $timerFill.style.transform = `scaleX(${pct})`;
+
+  const danger = secs <= 5;
+  $timerDigits.classList.toggle('danger', danger);
+  $timerFill.classList.toggle('danger', danger);
+
+  if (timerRemaining <= 0) {
+    endTimer();
+    return;
+  }
+  timerRAF = requestAnimationFrame(tickTimer);
+}
+
+function stopTimer() {
+  if (timerRAF) { cancelAnimationFrame(timerRAF); timerRAF = null; }
+  timerRunning = false;
+}
+
+function endTimer() {
+  stopTimer();
+  blocked = true;
+  if (timerScore > timerRecord) timerRecord = timerScore;
+
+  $timerDigits.textContent = '0';
+  $timerFill.style.transform = 'scaleX(0)';
+
+  const total = timerScore + timerErrors;
+  const acc = total > 0 ? Math.round((timerScore / total) * 100) : 100;
+
+  $resultScore.textContent = timerScore;
+  $recordVal.textContent   = timerRecord;
+  $accVal.textContent      = acc + '%';
+
+  const isRecord = timerScore === timerRecord && timerScore > 0;
+  $resultBest.innerHTML = isRecord
+    ? `🏆 Nouveau record : <span>${timerRecord}</span>`
+    : `Record : <span>${timerRecord}</span>`;
+
+  setTimeout(() => $resultOverlay.classList.add('visible'), 200);
+}
+
+$btnRestart.addEventListener('click', () => resetTimer());
+
+// ==========================================
+//  PICK NEXT SPELL
+// ==========================================
+function pickSpell() {
+  let pool = SPELLS.filter(s => s.id !== lastSpellId);
+  const spell = pool[Math.floor(Math.random() * pool.length)];
+  currentSpell = spell;
+  lastSpellId  = spell.id;
+  typedKeys    = [];
+  blocked      = false;
+  renderSpell();
+}
+
+// ==========================================
+//  RENDER
+// ==========================================
+function renderSpell() {
+  const spell = currentSpell;
+  $icon.style.setProperty('--icon-glow', spell.glow);
+  $icon.style.setProperty('--icon-color', spell.color);
+  $name.style.setProperty('--icon-color', spell.color);
+  $card.style.setProperty('--stance-color', spell.color);
+
+  $icon.classList.remove('entering');
+  void $icon.offsetWidth;
+  $icon.src = spell.icon;
+  $icon.alt = spell.name;
+  $icon.classList.add('entering');
+
+  $name.textContent = spell.name.toUpperCase();
+  $name.style.background = `linear-gradient(180deg, #ffffff 0%, ${spell.color} 100%)`;
+  $name.style.webkitBackgroundClip = 'text';
+  $name.style.webkitTextFillColor  = 'transparent';
+  $name.style.backgroundClip = 'text';
+
+  $card.classList.remove('entering', 'correct', 'wrong');
+  void $card.offsetWidth;
+  $card.classList.add('entering');
+}
+
+// ==========================================
+//  STATS bump
+// ==========================================
+function bump(el) {
+  el.classList.remove('bump');
+  void el.offsetWidth;
+  el.classList.add('bump');
+  el.addEventListener('animationend', () => el.classList.remove('bump'), { once: true });
+}
+
+// ==========================================
+//  TOAST
+// ==========================================
+let toastTimeout = null;
+function showToast(msg, isWrong = false) {
+  $toast.textContent = msg;
+  $toast.className = 'toast show' + (isWrong ? ' wrong-toast' : '');
+  clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(() => { $toast.className = 'toast'; }, 1200);
+}
+
+// ==========================================
+//  MILESTONES (free mode)
+// ==========================================
+const MILESTONES = [5, 10, 15, 20, 25, 30, 50, 75, 100];
+function checkMilestone(s) {
+  if (MILESTONES.includes(s)) {
+    const fires = s >= 25 ? '🔥🔥🔥' : s >= 10 ? '🔥🔥' : '🔥';
+    showToast(`${s} de suite ${fires}`);
+  }
+}
+
+// ==========================================
+//  KEY HANDLER
+// ==========================================
+document.addEventListener('keydown', (e) => {
+  if (blocked) return;
+  const key = e.key.toUpperCase();
+  if (!validKeys().has(key)) return;
+  e.preventDefault();
+
+  // Timer mode: first key starts the clock
+  if (gameMode === 'timer' && !timerStarted) startTimer();
+
+  const spell = currentSpell;
+  if (!spell) return;
+
+  const expectedKey = getKeys(spell)[typedKeys.length];
+
+  if (key === expectedKey) {
+    typedKeys.push(key);
+
+    if (typedKeys.length === getKeys(spell).length) {
+      // ---- SUCCESS ----
+      if (gameMode === 'free') {
+        streak++;
+        totalCorrect++;
+        if (streak > bestStreak) bestStreak = streak;
+        updateStatsFree();
+        checkMilestone(streak);
+        bump($streak); bump($total);
+        if (streak > 1) bump($best);
+      } else {
+        timerScore++;
+        $total.textContent = timerScore;
+        bump($total);
+      }
+
+      $card.classList.add('correct');
+      blocked = true;
+      spawnParticles('correct');
+
+      setTimeout(() => {
+        $card.classList.remove('correct');
+        pickSpell();
+      }, 200);
+    }
+
+  } else {
+    // ---- WRONG ----
+    if (gameMode === 'free') {
+      streak = 0;
+      updateStatsFree();
+      bump($streak);
+      showToast('RATÉ — Recommence !', true);
+    } else {
+      timerErrors++;
+    }
+
+    $card.classList.add('wrong');
+    blocked = true;
+    spawnParticles('wrong');
+
+    setTimeout(() => {
+      $card.classList.remove('wrong');
+      typedKeys = [];
+      blocked   = false;
+      pickSpell();
+    }, gameMode === 'timer' ? 300 : 500);
+  }
+});
+
+// ==========================================
+//  PARTICLES
+// ==========================================
+const canvas = document.getElementById('particles');
+const ctx = canvas.getContext('2d');
+let particles = [];
+
+function resize() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+class Particle {
+  constructor(x, y, color) {
+    this.x = x;
+    this.y = y;
+    this.vx = (Math.random() - 0.5) * 6;
+    this.vy = (Math.random() - 0.8) * 6;
+    this.alpha = 1;
+    this.radius = Math.random() * 3 + 1;
+    this.color = color;
+    this.decay = Math.random() * 0.03 + 0.02;
+  }
+  update() {
+    this.x += this.vx;
+    this.y += this.vy;
+    this.vy += 0.15;
+    this.alpha -= this.decay;
+  }
+  draw() {
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, this.alpha);
+    ctx.fillStyle = this.color;
+    ctx.shadowColor = this.color;
+    ctx.shadowBlur = 8;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+function spawnParticles(type) {
+  const rect = $card.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  const color = type === 'correct' ? '#0bc4b8' : '#ff4655';
+  const count = type === 'correct' ? 30 : 20;
+  for (let i = 0; i < count; i++) {
+    particles.push(new Particle(cx, cy, color));
+  }
+}
+
+function animateParticles() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  particles = particles.filter(p => p.alpha > 0);
+  particles.forEach(p => { p.update(); p.draw(); });
+  requestAnimationFrame(animateParticles);
+}
+animateParticles();
+
+// ==========================================
+//  AMBIENT FLOATING PARTICLES
+// ==========================================
+class AmbientParticle {
+  constructor() { this.reset(); }
+  reset() {
+    this.x = Math.random() * canvas.width;
+    this.y = canvas.height + 10;
+    this.vy = -(Math.random() * 0.5 + 0.2);
+    this.vx = (Math.random() - 0.5) * 0.3;
+    this.radius = Math.random() * 1.5 + 0.3;
+    this.alpha = Math.random() * 0.4 + 0.1;
+    this.color = Math.random() > 0.5 ? '#C89B3C' : '#7EC8E3';
+  }
+  update() {
+    this.x += this.vx;
+    this.y += this.vy;
+    if (this.y < -10) this.reset();
+  }
+  draw() {
+    ctx.save();
+    ctx.globalAlpha = this.alpha;
+    ctx.fillStyle = this.color;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+const ambientParticles = Array.from({ length: 60 }, () => {
+  const p = new AmbientParticle();
+  p.y = Math.random() * canvas.height;
+  return p;
+});
+
+const originalAnimate = animateParticles;
+function fullAnimate() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ambientParticles.forEach(p => { p.update(); p.draw(); });
+  particles = particles.filter(p => p.alpha > 0);
+  particles.forEach(p => { p.update(); p.draw(); });
+  requestAnimationFrame(fullAnimate);
+}
+
+// ==========================================
+//  INIT
+// ==========================================
+buildLegend();
+setMode('free');
+fullAnimate();
+</script>
+</body>
+</html>
